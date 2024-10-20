@@ -14,18 +14,19 @@ export const EmailProvider = ({ children, userId }) => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const favoriteResponse = await axios.get(`/api/email-status/${userId}`);
-        const readResponse = await axios.get(`/api/email-status/${userId}`);
+        const response = await axios.get(`/api/email-status/${userId}`);
 
-        setFavorites(favoriteResponse.data.isFavorite || []);
-        setReadEmails(readResponse.data.isRead || []);
+        setFavorites(response.data.favorites || []);
+        setReadEmails(response.data.readEmails || []);
       } catch (error) {
         console.error("Error fetching user data", error);
       }
     };
 
-    fetchUserData();
-  }, [userId]); // Add userId as a dependency
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId]);
 
   // Save favorites and readEmails to the server
   useEffect(() => {
@@ -40,10 +41,10 @@ export const EmailProvider = ({ children, userId }) => {
       }
     };
 
-    if (favorites.length > 0 || readEmails.length > 0) {
+    if ((favorites.length > 0 || readEmails.length > 0) && userId) {
       saveUserData();
     }
-  }, [favorites, readEmails, userId]); // Add userId as a dependency
+  }, [favorites, readEmails, userId]);
 
   const toggleFavorite = (id) => {
     setFavorites((prev) =>
@@ -54,9 +55,10 @@ export const EmailProvider = ({ children, userId }) => {
   const markAsRead = (id) => {
     if (!readEmails.includes(id)) {
       setReadEmails((prev) => [...prev, id]);
-      // Optionally, you can also send a request to update the server
+
+      // Optionally, you can also send a request to update the server immediately
       axios
-        .post(`/api/email-status/${id}`, {
+        .post(`/api/email-status/${userId}`, {
           isRead: true, // Mark as read
           id,
         })

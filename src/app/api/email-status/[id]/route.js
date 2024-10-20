@@ -56,3 +56,42 @@ export async function POST(req) {
     );
   }
 }
+
+export async function GET(req) {
+  const url = new URL(req.url);
+  const userId = url.pathname.split("/").pop(); // Extract userId from the path
+  const type = url.searchParams.get("type");
+
+  try {
+    const email = await Email.findOne({ emailId: userId });
+
+    if (!email) {
+      return new Response(JSON.stringify({ message: "Email not found" }), {
+        status: 404,
+      });
+    }
+
+    // Return data based on the type of request
+    if (type === "favorite") {
+      return new Response(JSON.stringify({ isFavorite: email.isFavorite }), {
+        status: 200,
+      });
+    } else if (type === "read") {
+      return new Response(JSON.stringify({ isRead: email.isRead }), {
+        status: 200,
+      });
+    } else {
+      return new Response(JSON.stringify({ message: "Invalid request type" }), {
+        status: 400,
+      });
+    }
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        message: "Error fetching email status",
+        error: error.message,
+      }),
+      { status: 500 }
+    );
+  }
+}
