@@ -18,7 +18,6 @@ export default function EmailBody({ email, selectedData }) {
         isRead: true,
         id: id,
       });
-      console.log("Read status updated successfully");
     } catch (error) {
       console.error("Error updating read status:", error);
     }
@@ -33,8 +32,6 @@ export default function EmailBody({ email, selectedData }) {
 
   const handleToggleFavorite = async (id) => {
     toggleFavorite(id);
-    console.log("my id in body is" + id);
-    console.log("my id in selected id in body is" + selectedData.id);
 
     try {
       const response = await axios.post(
@@ -44,7 +41,6 @@ export default function EmailBody({ email, selectedData }) {
           id: selectedData.id,
         }
       );
-      console.log("Email status updated:", response.data);
     } catch (error) {
       console.error("Error updating email status:", error);
     }
