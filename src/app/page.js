@@ -1,5 +1,5 @@
-import EmailList from "@/components/Emaillist";
-import Loader from "@/components/Loader/page";
+import EmailList from "../components/Emaillist.js";
+import Loader from "../components/Loader/page.js";
 import Image from "next/image";
 import { Suspense } from "react";
 
