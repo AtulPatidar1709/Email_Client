@@ -14,10 +14,14 @@ export default function EmailBody({ email, selectedData }) {
   // Function to update the read status
   const updateReadStatus = async (id) => {
     try {
-      await axios.post(`/api/email-status/${id}`, {
-        isRead: true,
-        id: id,
-      });
+      // Check if the email is already read
+      if (!selectedData.isRead) {
+        // Only update if it's not already read
+        await axios.post(`/api/email/${id}`, {
+          isRead: true,
+          id: id,
+        });
+      }
     } catch (error) {
       console.error("Error updating read status:", error);
     }
@@ -26,23 +30,23 @@ export default function EmailBody({ email, selectedData }) {
   // Update the read status when the component mounts
   useEffect(() => {
     if (selectedData && selectedData.id) {
-      updateReadStatus(selectedData.id);
+      updateReadStatus(selectedData.id); // Only called when email is selected
     }
   }, [selectedData]);
 
   const handleToggleFavorite = async (id) => {
-    toggleFavorite(id);
+    const newFavoriteStatus = !isFavorite; // Toggle the current favorite status
 
     try {
-      const response = await axios.post(
-        `/api/email-status/${selectedData.id}`,
-        {
-          isFavorite: !isFavorite,
-          id: selectedData.id,
-        }
-      );
+      await axios.post(`/api/email/${id}`, {
+        id: id,
+        isRead: selectedData.isRead, // Keep existing read status
+        isFavorite: newFavoriteStatus, // Pass the updated favorite status
+      });
+
+      toggleFavorite(id); // Update the context state if you are using one
     } catch (error) {
-      console.error("Error updating email status:", error);
+      console.error("Error updating email favorite status:", error);
     }
   };
 

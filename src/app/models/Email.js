@@ -8,6 +8,8 @@ const emailSchema = new mongoose.Schema({
   isRead: { type: Boolean, default: false },
   isFavorite: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
+  email: { type: String, required: true },
+  name: { type: String, required: true },
 });
 
 const Email = mongoose.models.Email || mongoose.model("Email", emailSchema);

@@ -7,44 +7,7 @@ body {
   font-family: sans-serif;
   background-color: #f4f6fa;
   color: #636363;
-}
-
-.email-list {
-  float: left;
-  border-right: 1px solid #ccc;
-}
-
-.email-body {
-  float: right;
-}
-
-.email-item {
-  padding: 10px;
-  cursor: pointer;
-}
-
-@keyframes crlMugLoader {
-  0%,
-  10% {
-    transform: translateY(64px);
-  }
-  90%,
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.loader {
-  @apply relative w-16 h-16 bg-white rounded-full overflow-hidden;
-}
-
-.loader:after {
-  content: "";
-  @apply absolute inset-2 m-auto bg-gray-900 rounded-full;
-}
-
-.loader:before {
-  content: "";
-  @apply absolute inset-0 m-auto bg-red-600;
-  animation: crlMugLoader 2s linear infinite alternate;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }

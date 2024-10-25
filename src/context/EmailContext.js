@@ -14,7 +14,9 @@ export const EmailProvider = ({ children, userId }) => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get(`/api/email-status/${userId}`);
+        const response = await axios.get(`/api/email/${userId}`);
+
+        console.log(response);
 
         setFavorites(response.data.favorites || []);
         setReadEmails(response.data.readEmails || []);

@@ -1,13 +1,14 @@
-"use client";
+import EmailList from "@/components/Emaillist";
+import Loader from "@/components/Loader/page";
+import Image from "next/image";
+import { Suspense } from "react";
 
-import EmailList from "../components/EmailList";
-import axios from "axios";
-import { useEffect, useState } from "react";
-
-export default function HomePage() {
+export default function Home() {
   return (
-    <div className="w-11/12">
-      <EmailList />
-    </div>
+    <Suspense fallback={<Loader />}>
+      <div className="w-[95%] sm:w-11/12">
+        <EmailList />
+      </div>
+    </Suspense>
   );
 }
