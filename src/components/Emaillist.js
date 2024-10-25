@@ -146,11 +146,7 @@ const EmailList = () => {
 
   return (
     <Suspense fallback={<Loader />}>
-      <header
-        className={`flex ${
-          selectedEmail ? "hidden md:flex" : "w-full"
-        } flex-wrap items-center justify-start mb-4 pt-4 space-x-1`}
-      >
+      <header className="flex flex-wrap items-center justify-start mb-4 pt-4 space-x-1">
         <h4 className="font-semibold">Filter By:</h4>
         {["all", "read", "unread", "favorites"].map((filterType) => (
           <Link
@@ -165,19 +161,11 @@ const EmailList = () => {
           </Link>
         ))}
       </header>
-
-      {/* Loader displayed while loading emails */}
-      {loading && (
-        <div className="flex justify-center">
-          <Loader />
-        </div>
-      )}
-
-      <main className={`flex flex-col md:flex-row h-screen w-full`}>
+      <main className="flex flex-col md:flex-row h-screen w-full">
         <aside
-          className={`flex-grow px-3 gap-4 overflow-y-auto ${
-            selectedEmail ? "hidden" : "block"
-          }`}
+          className={`${
+            selectedEmail ? "hidden md:block" : "block w-full"
+          } px-3 gap-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
         >
           {filteredEmails.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -188,7 +176,7 @@ const EmailList = () => {
               {filteredEmails.map((email) => (
                 <div
                   key={email.emailId}
-                  className={`p-3 flex gap-4 rounded-lg cursor-pointer shadow-md ${
+                  className={`p-4 flex gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
                     email.isRead ? "bg-gray-100" : "bg-white"
                   } ${
                     selectedEmail?.emailId === email.emailId
@@ -197,69 +185,88 @@ const EmailList = () => {
                   }`}
                   onClick={() => handleEmailSelect(email)}
                 >
-                  <div className="bg-[#E54065] ml-2 rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
+                  {/* Sender Initial Circle */}
+                  <div className="bg-[#E54065] rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
                     {email.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex flex-col gap-1 flex-grow">
-                    <p>
-                      From:{" "}
-                      <span className="font-semibold">
-                        {email.name} {email.email}
+
+                  {/* Email Information */}
+                  <div className="flex-grow overflow-hidden flex flex-col gap-1">
+                    <p className="font-semibold">
+                      {email.name}{" "}
+                      <span className="text-base text-gray-500">
+                        {email.email}
                       </span>
                     </p>
-                    <p>
-                      Subject:{" "}
-                      <span className="font-semibold">{email.subject}</span>
+                    <p className="font-semibold truncate">
+                      Subject: {email.subject}
                     </p>
-                    <p>{email.body}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex gap-4">
-                        <p>{formatDate(email.createdAt)}</p>
-                        {email.isFavorite && (
-                          <p className="text-[#E54065] font-semibold">
-                            Favorite
-                          </p>
-                        )}
-                      </div>
+                    <p className="text-sm text-gray-500 truncate">
+                      {email.body}
+                    </p>
+                    <div className="flex justify-start gap-4 items-center text-sm">
+                      <p>{formatDate(email.createdAt)}</p>
+                      {email.isFavorite && (
+                        <span className="text-[#E54065] font-semibold">
+                          Favorite
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-          {dataLength > emailsPerPage && (
-            <div className="flex justify-center items-center gap-4 mt-4">
-              <Link
-                href="#"
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-                className="disabled:bg-gray-200 px-4 py-1 bg-red-200 rounded-md"
-              >
-                Previous
-              </Link>
-              <span className="font-semibold">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Link
-                href="#"
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-                className="disabled:bg-gray-200 px-4 py-1 bg-red-200 rounded-md"
-              >
-                Next
-              </Link>
+              {dataLength > 5 && (
+                <footer className="flex justify-center items-center rounded-full gap-4 mt-6">
+                  <button
+                    className={`px-4 py-2 rounded ${
+                      currentPage === 1
+                        ? "bg-red-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <p>
+                    Page {currentPage} of {totalPages}
+                  </p>
+                  <button
+                    className={`px-4 py-2 rounded ${
+                      currentPage === totalPages
+                        ? "bg-red-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </footer>
+              )}
             </div>
           )}
         </aside>
 
-        {/* Email body section */}
+        {/* Email Body Section */}
         {selectedEmail && (
-          <EmailBody
-            selectedData={selectedData}
-            email={selectedEmail}
-            onBack={handleBackToList}
-            loading={loadingBody}
-          />
+          <div className="block md:w-[70%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
+            {/* <button
+              onClick={handleBackToList}
+              className="bg-red-200 px-4 py-2 rounded mb-4"
+            >
+              Back to List
+            </button> */}
+            {loadingBody ? (
+              <Loader />
+            ) : (
+              <EmailBody
+                selectedData={selectedData}
+                selectedEmail={selectedEmail}
+                handleToggleFavorite={handleToggleFavorite}
+              />
+            )}
+          </div>
         )}
       </main>
     </Suspense>
