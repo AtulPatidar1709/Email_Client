@@ -7,7 +7,7 @@ const emailSchema = new mongoose.Schema({
   body: { type: String, required: true },
   isRead: { type: Boolean, default: false },
   isFavorite: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: Date },
   email: { type: String, required: true },
   name: { type: String, required: true },
 });

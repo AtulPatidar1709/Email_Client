@@ -1,7 +1,7 @@
-import { EmailProvider } from "../context/EmailContext.js";
+import { EmailProvider } from "@/context/EmailContext";
 import "./globals.css";
 import { Suspense } from "react";
-import Loader from "../components/Loader/page.js";
+import Loader from "@/components/Loader/page";
 
 export const metadata = {
   title: "Create Next App",

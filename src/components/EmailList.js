@@ -2,11 +2,10 @@
 
 import axios from "axios";
 import { Suspense, useEffect, useState } from "react";
+import EmailBody from "../components/EmailBody.js";
 import { formatDate } from "../utils/formatDate.js";
 import Loader from "./Loader/page.js";
-import dynamic from "next/dynamic.js";
-
-const EmailBody = dynamic(() => import("../components/EmailBody.js"));
+import Link from "next/link.js";
 
 const EmailList = () => {
   const [emails, setEmails] = useState([]);
@@ -18,28 +17,23 @@ const EmailList = () => {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [filter, setFilter] = useState("all");
   const [selectedData, setSelectedData] = useState(null);
-  const [Datalength, setDatalength] = useState(0);
+  const [dataLength, setDataLength] = useState(0);
   const emailsPerPage = 5;
+  let timeoutId;
 
   useEffect(() => {
     const fetchEmails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
+        const response = await axios.get(
           `/api/email?page=${currentPage}&limit=${emailsPerPage}&filter=${filter}`
         );
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        setDatalength(data.totalItems);
-        if (Array.isArray(data.paginatedEmails)) {
-          setEmails(data.paginatedEmails);
-          setTotalPages(
-            data.totalItems ? Math.ceil(data.totalItems / emailsPerPage) : 1
-          );
+        if (response.status === 200) {
+          setDataLength(response.data.totalItems);
+          setEmails(response.data.paginatedEmails);
+          setTotalPages(Math.ceil(response.data.totalItems / emailsPerPage));
         } else {
-          throw new Error("Data structure is not as expected");
+          throw new Error("Failed to fetch emails");
         }
       } catch (error) {
         setError(error.message);
@@ -50,7 +44,10 @@ const EmailList = () => {
 
     fetchEmails();
     const interval = setInterval(fetchEmails, 10000); // Poll every 10 seconds
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeoutId); // Clear timeout on unmount
+    };
   }, [currentPage, filter]);
 
   const handlePageChange = (newPage) => {
@@ -60,10 +57,13 @@ const EmailList = () => {
   };
 
   const handleFilterChange = (newFilter) => {
-    setSelectedEmail(null);
-    setSelectedData(null);
-    setFilter(newFilter);
-    setCurrentPage(1); // Reset to the first page when filter changes
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      setSelectedEmail(null);
+      setSelectedData(null);
+      setFilter(newFilter);
+      setCurrentPage(1); // Reset to the first page when filter changes
+    }, 300); // Delay of 300ms
   };
 
   const handleEmailSelect = async (email) => {
@@ -126,7 +126,8 @@ const EmailList = () => {
       >
         <h4 className="font-semibold">Filter By:</h4>
         {["all", "read", "unread", "favorites"].map((filterType) => (
-          <button
+          <Link
+            href="#"
             key={filterType}
             onClick={() => handleFilterChange(filterType)}
             className={`px-4 py-1 mx-1 rounded-full ${
@@ -134,7 +135,7 @@ const EmailList = () => {
             }`}
           >
             {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
-          </button>
+          </Link>
         ))}
       </header>
 
@@ -150,8 +151,6 @@ const EmailList = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {" "}
-              {/* Added this div */}
               {filteredEmails.map((email) => (
                 <div
                   key={email.emailId}
@@ -180,7 +179,7 @@ const EmailList = () => {
                     </p>
                     <p>{email.body}</p>
                     <div className="flex gap-4">
-                      <p>{email.createdAt}</p>
+                      <p>{formatDate(email.createdAt)}</p>
                       {email.isFavorite && (
                         <p className="text-[#E54065] font-semibold">Favorite</p>
                       )}
@@ -190,25 +189,27 @@ const EmailList = () => {
               ))}
             </div>
           )}
-          {Datalength > emailsPerPage && (
+          {dataLength > emailsPerPage && (
             <div className="flex justify-center items-center gap-4 mt-4">
-              <button
+              <Link
+                href="#"
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="disabled:bg-gray-200 px-4 py-1 bg-red-200 rounded-md"
               >
                 Previous
-              </button>
+              </Link>
               <span className="font-semibold">
                 Page {currentPage} of {totalPages}
               </span>
-              <button
+              <Link
+                href="#"
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="disabled:bg-gray-200 px-4 py-1 bg-red-200 rounded-md"
               >
                 Next
-              </button>
+              </Link>
             </div>
           )}
         </aside>
@@ -216,12 +217,13 @@ const EmailList = () => {
         <Suspense fallback={<Loader />}>
           {selectedEmail && selectedData && (
             <div className="flex flex-col flex-grow h-full p-3 border-l border-gray-300">
-              <button
+              <Link
+                href="#"
                 onClick={handleBackToList}
                 className="mb-2 text-blue-500 hover:underline"
               >
                 Back to Emails
-              </button>
+              </Link>
               <EmailBody
                 email={selectedEmail}
                 onBack={handleBackToList}
