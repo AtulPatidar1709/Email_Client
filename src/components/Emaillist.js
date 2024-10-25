@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import EmailBody from "../components/EmailBody.js";
 import { formatDate } from "../utils/formatDate.js";
 import Loader from "./Loader/page.js";
@@ -19,35 +19,43 @@ const EmailList = () => {
   const [selectedData, setSelectedData] = useState(null);
   const [dataLength, setDataLength] = useState(0);
   const emailsPerPage = 5;
-  let timeoutId;
+  const cache = useRef({}); // Caching emails by page and filter
 
   useEffect(() => {
     const fetchEmails = async () => {
-      setLoading(true);
+      setLoading(true); // Set loading to true when fetching emails
+      const cacheKey = `${currentPage}-${filter}`;
+      if (cache.current[cacheKey]) {
+        // Use cached data if available
+        const { paginatedEmails, totalItems } = cache.current[cacheKey];
+        setEmails(paginatedEmails);
+        setDataLength(totalItems);
+        setTotalPages(Math.ceil(totalItems / emailsPerPage));
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await axios.get(
           `/api/email?page=${currentPage}&limit=${emailsPerPage}&filter=${filter}`
         );
         if (response.status === 200) {
-          setDataLength(response.data.totalItems);
-          setEmails(response.data.paginatedEmails);
-          setTotalPages(Math.ceil(response.data.totalItems / emailsPerPage));
+          const { paginatedEmails, totalItems } = response.data;
+          cache.current[cacheKey] = response.data; // Cache the data
+          setDataLength(totalItems);
+          setEmails(paginatedEmails);
+          setTotalPages(Math.ceil(totalItems / emailsPerPage));
         } else {
           throw new Error("Failed to fetch emails");
         }
       } catch (error) {
         setError(error.message);
       } finally {
-        setLoading(false);
+        setLoading(false); // Set loading to false after fetching emails
       }
     };
 
     fetchEmails();
-    const interval = setInterval(fetchEmails, 10000); // Poll every 10 seconds
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId); // Clear timeout on unmount
-    };
   }, [currentPage, filter]);
 
   const handlePageChange = (newPage) => {
@@ -57,13 +65,10 @@ const EmailList = () => {
   };
 
   const handleFilterChange = (newFilter) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      setSelectedEmail(null);
-      setSelectedData(null);
-      setFilter(newFilter);
-      setCurrentPage(1); // Reset to the first page when filter changes
-    }, 300); // Delay of 300ms
+    setSelectedEmail(null);
+    setSelectedData(null);
+    setFilter(newFilter);
+    setCurrentPage(1); // Reset to the first page when filter changes
   };
 
   const handleEmailSelect = async (email) => {
@@ -84,6 +89,8 @@ const EmailList = () => {
           subject: email.subject,
           date: formatDate(email.createdAt),
           body: response.data.email.body,
+          isFavorite: email.isFavorite,
+          read: email.isRead,
         });
       } else {
         setError("Error in fetching single data");
@@ -99,6 +106,26 @@ const EmailList = () => {
   const handleBackToList = () => {
     setSelectedEmail(null);
     setSelectedData(null);
+  };
+
+  const handleToggleFavorite = async (emailId) => {
+    try {
+      const response = await axios.post(`/api/email/favorite`, { emailId });
+      if (response.status === 200) {
+        setEmails((prevEmails) =>
+          prevEmails.map((email) =>
+            email.emailId === emailId
+              ? { ...email, isFavorite: !email.isFavorite }
+              : email
+          )
+        );
+      } else {
+        throw new Error("Failed to update favorite status");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite status:", error);
+      setError("Failed to toggle favorite status");
+    }
   };
 
   const filteredEmails = emails.filter((email) => {
@@ -139,6 +166,13 @@ const EmailList = () => {
         ))}
       </header>
 
+      {/* Loader displayed while loading emails */}
+      {loading && (
+        <div className="flex justify-center">
+          <Loader />
+        </div>
+      )}
+
       <main className={`flex flex-col md:flex-row h-screen w-full`}>
         <aside
           className={`flex-grow px-3 gap-4 overflow-y-auto ${
@@ -166,7 +200,7 @@ const EmailList = () => {
                   <div className="bg-[#E54065] ml-2 rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
                     {email.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 flex-grow">
                     <p>
                       From:{" "}
                       <span className="font-semibold">
@@ -178,11 +212,15 @@ const EmailList = () => {
                       <span className="font-semibold">{email.subject}</span>
                     </p>
                     <p>{email.body}</p>
-                    <div className="flex gap-4">
-                      <p>{formatDate(email.createdAt)}</p>
-                      {email.isFavorite && (
-                        <p className="text-[#E54065] font-semibold">Favorite</p>
-                      )}
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-4">
+                        <p>{formatDate(email.createdAt)}</p>
+                        {email.isFavorite && (
+                          <p className="text-[#E54065] font-semibold">
+                            Favorite
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -214,25 +252,15 @@ const EmailList = () => {
           )}
         </aside>
 
-        <Suspense fallback={<Loader />}>
-          {selectedEmail && selectedData && (
-            <div className="flex flex-col flex-grow h-full p-3 border-l border-gray-300">
-              <Link
-                href="#"
-                onClick={handleBackToList}
-                className="mb-2 text-blue-500 hover:underline"
-              >
-                Back to Emails
-              </Link>
-              <EmailBody
-                email={selectedEmail}
-                onBack={handleBackToList}
-                selectedData={selectedData}
-                loading={loadingBody}
-              />
-            </div>
-          )}
-        </Suspense>
+        {/* Email body section */}
+        {selectedEmail && (
+          <EmailBody
+            selectedData={selectedData}
+            email={selectedEmail}
+            onBack={handleBackToList}
+            loading={loadingBody}
+          />
+        )}
       </main>
     </Suspense>
   );
