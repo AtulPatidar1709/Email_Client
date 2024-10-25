@@ -2,9 +2,11 @@
 
 import axios from "axios";
 import { Suspense, useEffect, useState } from "react";
-import EmailBody from "../components/EmailBody.js";
 import { formatDate } from "../utils/formatDate.js";
 import Loader from "./Loader/page.js";
+import dynamic from "next/dynamic.js";
+
+const EmailBody = dynamic(() => import("../components/EmailBody.js"));
 
 const EmailList = () => {
   const [emails, setEmails] = useState([]);
