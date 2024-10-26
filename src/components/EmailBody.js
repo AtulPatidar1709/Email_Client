@@ -1,50 +1,67 @@
-import { useContext, useEffect } from "react";
+"use client";
+import { useContext, useEffect, useState } from "react";
 import EmailContext from "../context/EmailContext";
 import he from "he";
-import axios from "axios"; // Import axios for making API calls
+import axios from "axios";
 
 export default function EmailBody({ email, selectedData }) {
   const { toggleFavorite, favorites } = useContext(EmailContext);
-  const isFavorite = email ? favorites.includes(email.id) : false;
-  const decodedBody =
-    selectedData && selectedData.body
-      ? he.decode(selectedData.body)
-      : "No email body available.";
+  const [isFavorite, setIsFavorite] = useState(
+    selectedData?.isFavorite || false
+  );
 
-  // Function to update the read status
-  const updateReadStatus = async (id) => {
-    try {
-      // Check if the email is already read
-      if (!selectedData.isRead) {
-        // Only update if it's not already read
-        await axios.post(`/api/email/${id}`, {
-          isRead: true,
-          id: id,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating read status:", error);
-    }
-  };
+  const decodedBody = selectedData?.body
+    ? he.decode(selectedData.body)
+    : "No email body available.";
+
+  // // Function to update the read status
+  // const updateReadStatus = async (id) => {
+  //   try {
+  //     if (!selectedData.isRead) {
+  //       await axios.post(
+  //         `/api/email/${id}`,
+  //         {
+  //           isRead: true,
+  //           id: id,
+  //         },
+  //         {
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //         }
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating read status:", error);
+  //   }
+  // };
 
   // Update the read status when the component mounts
-  useEffect(() => {
-    if (selectedData && selectedData.id) {
-      updateReadStatus(selectedData.id); // Only called when email is selected
-    }
-  }, [selectedData]);
+  // useEffect(() => {
+  //   if (selectedData?.id) {
+  //     updateReadStatus(selectedData.id);
+  //   }
+  // }, [selectedData]);
 
   const handleToggleFavorite = async (id) => {
-    const newFavoriteStatus = !isFavorite; // Toggle the current favorite status
-
     try {
-      await axios.post(`/api/email/${id}`, {
-        id: id,
-        isRead: selectedData.isRead, // Keep existing read status
-        isFavorite: newFavoriteStatus, // Pass the updated favorite status
-      });
+      const newFavoriteStatus = !isFavorite;
+      await axios.post(
+        `/api/email/${id}`,
+        {
+          id: id,
+          isRead: selectedData.isRead, // Maintain the current read status
+          isFavorite: newFavoriteStatus,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      toggleFavorite(id); // Update the context state if you are using one
+      setIsFavorite(newFavoriteStatus); // Update local state
+      toggleFavorite(id); // Update global context state if needed
     } catch (error) {
       console.error("Error updating email favorite status:", error);
     }

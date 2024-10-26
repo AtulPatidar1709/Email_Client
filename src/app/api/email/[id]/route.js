@@ -68,6 +68,8 @@ export async function GET(req) {
 
     const isRead = existingEmail && existingEmail.isRead ? true : true;
 
+    console.log("my id data is " + thirdPartyEmailData.data);
+
     const result = await Email.findOneAndUpdate(
       { emailId },
       {

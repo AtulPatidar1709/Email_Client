@@ -1,13 +1,15 @@
 "use client";
 
 import axios from "axios";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import EmailBody from "../components/EmailBody.js";
 import { formatDate } from "../utils/formatDate.js";
 import Loader from "./Loader/page.js";
 import Link from "next/link.js";
+import EmailContext from "../context/EmailContext";
 
 const EmailList = () => {
+  const { toggleFavorite, favorites } = useContext(EmailContext);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingBody, setLoadingBody] = useState(false);
@@ -82,6 +84,7 @@ const EmailList = () => {
             e.emailId === email.emailId ? { ...e, read: true } : e
           )
         );
+        console.log(response);
         setSelectedData({
           id: email.emailId,
           from: email.name,
@@ -110,7 +113,9 @@ const EmailList = () => {
 
   const handleToggleFavorite = async (emailId) => {
     try {
-      const response = await axios.post(`/api/email/favorite`, { emailId });
+      const response = await axios.post(`/api/email/${emailId}`, {
+        id: emailId,
+      });
       if (response.status === 200) {
         setEmails((prevEmails) =>
           prevEmails.map((email) =>
@@ -149,7 +154,7 @@ const EmailList = () => {
       <header className="flex flex-wrap items-center justify-start mb-4 pt-4 space-x-1">
         <h4 className="font-semibold">Filter By:</h4>
         {["all", "read", "unread", "favorites"].map((filterType) => (
-          <Link
+          <button
             href="#"
             key={filterType}
             onClick={() => handleFilterChange(filterType)}
@@ -158,7 +163,7 @@ const EmailList = () => {
             }`}
           >
             {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
-          </Link>
+          </button>
         ))}
       </header>
       <main className="flex flex-col md:flex-row h-screen w-full">
@@ -206,7 +211,7 @@ const EmailList = () => {
                     </p>
                     <div className="flex justify-start gap-4 items-center text-sm">
                       <p>{formatDate(email.createdAt)}</p>
-                      {email.isFavorite && (
+                      {email.isFavorite === true && (
                         <span className="text-[#E54065] font-semibold">
                           Favorite
                         </span>
