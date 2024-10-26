@@ -9,7 +9,7 @@ import Link from "next/link.js";
 import EmailContext from "../context/EmailContext";
 
 const EmailList = () => {
-  const { toggleFavorite, favorites } = useContext(EmailContext);
+  const { toggleFavorite, favorites, markAsRead } = useContext(EmailContext);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingBody, setLoadingBody] = useState(false);
@@ -56,9 +56,10 @@ const EmailList = () => {
         setLoading(false); // Set loading to false after fetching emails
       }
     };
-
     fetchEmails();
-  }, [currentPage, filter]);
+    const interval = setInterval(fetchEmails, 5000);
+    return () => clearInterval(interval);
+  }, [currentPage, filter, markAsRead]);
 
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -155,7 +156,7 @@ const EmailList = () => {
         <h4 className="font-semibold">Filter By:</h4>
         {["all", "read", "unread", "favorites"].map((filterType) => (
           <button
-            href="#"
+            href="/"
             key={filterType}
             onClick={() => handleFilterChange(filterType)}
             className={`px-4 py-1 mx-1 rounded-full ${
@@ -170,7 +171,7 @@ const EmailList = () => {
         <aside
           className={`${
             selectedEmail ? "hidden md:block" : "block w-full"
-          } px-3 gap-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
+          } pr-3 gap-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
         >
           {filteredEmails.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -183,7 +184,7 @@ const EmailList = () => {
                   key={email.emailId}
                   className={`p-4 flex gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
                     email.isRead ? "bg-gray-100" : "bg-white"
-                  } ${
+                  } && ${
                     selectedEmail?.emailId === email.emailId
                       ? "bg-gray-200"
                       : ""
@@ -255,7 +256,7 @@ const EmailList = () => {
 
         {/* Email Body Section */}
         {selectedEmail && (
-          <div className="block md:w-[70%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
+          <div className="block md:w-[80%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
             {/* <button
               onClick={handleBackToList}
               className="bg-red-200 px-4 py-2 rounded mb-4"

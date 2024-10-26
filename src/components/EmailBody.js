@@ -14,35 +14,6 @@ export default function EmailBody({ email, selectedData }) {
     ? he.decode(selectedData.body)
     : "No email body available.";
 
-  // // Function to update the read status
-  // const updateReadStatus = async (id) => {
-  //   try {
-  //     if (!selectedData.isRead) {
-  //       await axios.post(
-  //         `/api/email/${id}`,
-  //         {
-  //           isRead: true,
-  //           id: id,
-  //         },
-  //         {
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //           },
-  //         }
-  //       );
-  //     }
-  //   } catch (error) {
-  //     console.error("Error updating read status:", error);
-  //   }
-  // };
-
-  // Update the read status when the component mounts
-  // useEffect(() => {
-  //   if (selectedData?.id) {
-  //     updateReadStatus(selectedData.id);
-  //   }
-  // }, [selectedData]);
-
   const handleToggleFavorite = async (id) => {
     try {
       const newFavoriteStatus = !isFavorite;
@@ -80,7 +51,7 @@ export default function EmailBody({ email, selectedData }) {
         </div>
         {selectedData && (
           <button
-            className={`p-2 rounded-md ${
+            className={`px-[15px] text-xs sm:text-base py-[5px] rounded-full border-2 border-black ${
               isFavorite
                 ? "bg-[#E54065] text-white"
                 : "bg-gray-200 text-gray-800"

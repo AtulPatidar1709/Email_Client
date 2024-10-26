@@ -6,7 +6,7 @@ import { Suspense } from "react";
 export default function Home() {
   return (
     <Suspense fallback={<Loader />}>
-      <div className="w-[95%] sm:w-11/12">
+      <div className="w-[95%]">
         <EmailList />
       </div>
     </Suspense>
