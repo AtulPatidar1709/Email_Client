@@ -22,13 +22,13 @@ const EmailList = () => {
   const [dataLength, setDataLength] = useState(0);
   const emailsPerPage = 5;
   const cache = useRef({}); // Caching emails by page and filter
+  const cancelTokenSource = useRef(null); // Ref to hold the cancel token
 
   useEffect(() => {
     const fetchEmails = async () => {
-      setLoading(true); // Set loading to true when fetching emails
+      setLoading(true);
       const cacheKey = `${currentPage}-${filter}`;
       if (cache.current[cacheKey]) {
-        // Use cached data if available
         const { paginatedEmails, totalItems } = cache.current[cacheKey];
         setEmails(paginatedEmails);
         setDataLength(totalItems);
@@ -38,12 +38,15 @@ const EmailList = () => {
       }
 
       try {
+        cancelTokenSource.current = axios.CancelToken.source(); // Create a new cancel token
         const response = await axios.get(
-          `/api/email?page=${currentPage}&limit=${emailsPerPage}&filter=${filter}`
+          `/api/email?page=${currentPage}&limit=${emailsPerPage}&filter=${filter}`,
+          { cancelToken: cancelTokenSource.current.token } // Pass the token
         );
+
         if (response.status === 200) {
           const { paginatedEmails, totalItems } = response.data;
-          cache.current[cacheKey] = response.data; // Cache the data
+          cache.current[cacheKey] = response.data;
           setDataLength(totalItems);
           setEmails(paginatedEmails);
           setTotalPages(Math.ceil(totalItems / emailsPerPage));
@@ -51,14 +54,23 @@ const EmailList = () => {
           throw new Error("Failed to fetch emails");
         }
       } catch (error) {
-        setError(error.message);
+        if (axios.isCancel(error)) {
+          console.log("Request canceled:", error.message);
+        } else {
+          setError(error.message);
+        }
       } finally {
-        setLoading(false); // Set loading to false after fetching emails
+        setLoading(false);
       }
     };
     fetchEmails();
     const interval = setInterval(fetchEmails, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (cancelTokenSource.current) {
+        cancelTokenSource.current.cancel("Operation canceled by the user.");
+      }
+    };
   }, [currentPage, filter, markAsRead]);
 
   const handlePageChange = (newPage) => {
@@ -76,8 +88,16 @@ const EmailList = () => {
 
   const handleEmailSelect = async (email) => {
     setLoadingBody(true);
+    if (cancelTokenSource.current) {
+      cancelTokenSource.current.cancel("Operation canceled by the user."); // Cancel previous request
+    }
+
     try {
-      const response = await axios.get(`/api/email/${email.emailId}`);
+      cancelTokenSource.current = axios.CancelToken.source(); // Create a new cancel token
+      const response = await axios.get(`/api/email/${email.emailId}`, {
+        cancelToken: cancelTokenSource.current.token, // Pass the token
+      });
+
       if (response.status === 200) {
         setSelectedEmail({ ...response.data.email, read: true });
         setEmails((prevEmails) =>
@@ -85,7 +105,6 @@ const EmailList = () => {
             e.emailId === email.emailId ? { ...e, read: true } : e
           )
         );
-        console.log(response);
         setSelectedData({
           id: email.emailId,
           from: email.name,
@@ -100,8 +119,12 @@ const EmailList = () => {
         setError("Error in fetching single data");
       }
     } catch (error) {
-      console.error("Error fetching selected email:", error);
-      setError("Failed to fetch the selected email");
+      if (axios.isCancel(error)) {
+        console.log("Request canceled:", error.message);
+      } else {
+        console.error("Error fetching selected email:", error);
+        setError("Failed to fetch the selected email");
+      }
     } finally {
       setLoadingBody(false);
     }
@@ -147,7 +170,12 @@ const EmailList = () => {
     return true;
   });
 
-  if (loading) return <Loader />;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center">
+        <Loader />
+      </div>
+    );
   if (error) return <p>Error: {error}</p>;
 
   return (
@@ -257,12 +285,6 @@ const EmailList = () => {
         {/* Email Body Section */}
         {selectedEmail && (
           <div className="block md:w-[80%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
-            {/* <button
-              onClick={handleBackToList}
-              className="bg-red-200 px-4 py-2 rounded mb-4"
-            >
-              Back to List
-            </button> */}
             {loadingBody ? (
               <Loader />
             ) : (
