@@ -10,11 +10,7 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit")) || 5;
     const filter = searchParams.get("filter") || "all";
 
-    // Fetch emails directly from the database
-    const data = await Email.find({});
-
-    // Filter emails based on the selected filter
-
+    // Fetch emails based on the selected filter
     let filteredEmails;
 
     if (filter === "read") {
@@ -24,6 +20,7 @@ export async function GET(request) {
     } else if (filter === "favorites") {
       filteredEmails = await Email.find({ isFavorite: true });
     } else {
+      // Default case: return unread emails if the filter is not recognized
       filteredEmails = await Email.find({});
     }
 

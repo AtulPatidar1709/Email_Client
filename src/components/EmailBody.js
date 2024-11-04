@@ -3,36 +3,22 @@ import { useContext, useEffect, useState } from "react";
 import EmailContext from "../context/EmailContext";
 import he from "he";
 import axios from "axios";
+import { formatDate } from "@/utils/formatDate";
 
-export default function EmailBody({ email, selectedData }) {
-  const { toggleFavorite, favorites } = useContext(EmailContext);
+export default function EmailBody() {
+  const { toggleFavorite, favorites, selectedEmail } = useContext(EmailContext);
   const [isFavorite, setIsFavorite] = useState(
-    selectedData?.isFavorite || false
+    selectedEmail?.isFavorite || false
   );
 
-  const decodedBody = selectedData?.body
-    ? he.decode(selectedData.body)
+  const decodedBody = selectedEmail?.body
+    ? he.decode(selectedEmail.body)
     : "No email body available.";
 
-  const handleToggleFavorite = async (id) => {
+  const handleToggleFavorite = async (selectedEmail) => {
     try {
-      const newFavoriteStatus = !isFavorite;
-      await axios.post(
-        `/api/email/${id}`,
-        {
-          id: id,
-          isRead: selectedData.isRead, // Maintain the current read status
-          isFavorite: newFavoriteStatus,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      setIsFavorite(newFavoriteStatus); // Update local state
-      toggleFavorite(id); // Update global context state if needed
+      setIsFavorite(!selectedEmail.isFavorite); // Update local state
+      toggleFavorite(selectedEmail.emailId); // Update global context state if needed
     } catch (error) {
       console.error("Error updating email favorite status:", error);
     }
@@ -42,28 +28,29 @@ export default function EmailBody({ email, selectedData }) {
     <div className="bg-white rounded-lg shadow-md p-6 border border-[var(--border-color)]">
       <div className="flex items-center pb-2">
         <div className="bg-[#E54065] rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-[#F2F2F2]">
-          {selectedData?.from.charAt(0).toUpperCase()}
+          {selectedEmail?.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-grow pl-4">
-          <h2 className="sm:text-xs md:text-lg font-bold text-[#636363]">
-            {selectedData?.subject}
+          <h2 className="sm:text-xs pb-2 md:text-lg font-bold text-[#636363]">
+            {selectedEmail?.subject}
           </h2>
+          <p>{formatDate(selectedEmail.createdAt)}</p>
         </div>
-        {selectedData && (
+        {selectedEmail && (
           <button
             className={`px-[15px] text-xs sm:text-base py-[5px] rounded-full border-2 border-black ${
               isFavorite
                 ? "bg-[#E54065] text-white"
                 : "bg-gray-200 text-gray-800"
             }`}
-            onClick={() => handleToggleFavorite(selectedData.id)}
+            onClick={() => handleToggleFavorite(selectedEmail)}
           >
             {isFavorite ? "Remove Favorite" : "Mark as Favorite"}
           </button>
         )}
       </div>
       <div className="py-2 font-medium">
-        <p>{selectedData?.date}</p>
+        <p>{selectedEmail?.date}</p>
       </div>
       <div className="pb-4 font-medium">
         <div dangerouslySetInnerHTML={{ __html: decodedBody }} />

@@ -8,17 +8,6 @@ export async function POST(req) {
   try {
     const { id, isRead, isFavorite } = await req.json();
 
-    // Fetch email data from the third-party API
-    const thirdPartyAPIUrl = `https://flipkart-email-mock.now.sh/?id=${id}`;
-    const thirdPartyEmailData = await axios.get(thirdPartyAPIUrl);
-
-    if (!thirdPartyEmailData.data) {
-      return new Response(
-        JSON.stringify({ message: "Email not found in third-party API" }),
-        { status: 404 }
-      );
-    }
-
     // Find and update the email in the database
     const existingEmail = await Email.findOneAndUpdate(
       { emailId: id },
@@ -67,8 +56,6 @@ export async function GET(req) {
     const existingEmail = await Email.findOne({ emailId });
 
     const isRead = existingEmail && existingEmail.isRead ? true : true;
-
-    console.log("my id data is " + thirdPartyEmailData.data);
 
     const result = await Email.findOneAndUpdate(
       { emailId },

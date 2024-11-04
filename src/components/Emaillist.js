@@ -5,20 +5,24 @@ import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import EmailBody from "../components/EmailBody.js";
 import { formatDate } from "../utils/formatDate.js";
 import Loader from "./Loader/page.js";
-import Link from "next/link.js";
 import EmailContext from "../context/EmailContext";
 
 const EmailList = () => {
-  const { toggleFavorite, favorites, markAsRead } = useContext(EmailContext);
+  const {
+    toggleFavorite,
+    favorites,
+    markAsRead,
+    selectEmail,
+    selectedEmail,
+    setSelectedEmail,
+  } = useContext(EmailContext);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingBody, setLoadingBody] = useState(false);
+  const [bodyloading, setBodyloading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedEmail, setSelectedEmail] = useState(null);
   const [filter, setFilter] = useState("all");
-  const [selectedData, setSelectedData] = useState(null);
   const [dataLength, setDataLength] = useState(0);
   const emailsPerPage = 5;
   const cache = useRef({}); // Caching emails by page and filter
@@ -63,15 +67,16 @@ const EmailList = () => {
         setLoading(false);
       }
     };
+
     fetchEmails();
-    const interval = setInterval(fetchEmails, 5000);
+    const interval = setInterval(fetchEmails, 1000); // Poll for new emails every 5 seconds
     return () => {
       clearInterval(interval);
       if (cancelTokenSource.current) {
         cancelTokenSource.current.cancel("Operation canceled by the user.");
       }
     };
-  }, [currentPage, filter, markAsRead]);
+  }, [currentPage, filter, favorites]);
 
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -81,80 +86,33 @@ const EmailList = () => {
 
   const handleFilterChange = (newFilter) => {
     setSelectedEmail(null);
-    setSelectedData(null);
     setFilter(newFilter);
-    setCurrentPage(1); // Reset to the first page when filter changes
+    setCurrentPage(1);
   };
 
   const handleEmailSelect = async (email) => {
-    setLoadingBody(true);
-    if (cancelTokenSource.current) {
-      cancelTokenSource.current.cancel("Operation canceled by the user."); // Cancel previous request
-    }
-
+    setBodyloading(true);
     try {
-      cancelTokenSource.current = axios.CancelToken.source(); // Create a new cancel token
-      const response = await axios.get(`/api/email/${email.emailId}`, {
-        cancelToken: cancelTokenSource.current.token, // Pass the token
-      });
-
-      if (response.status === 200) {
-        setSelectedEmail({ ...response.data.email, read: true });
-        setEmails((prevEmails) =>
-          prevEmails.map((e) =>
-            e.emailId === email.emailId ? { ...e, read: true } : e
-          )
-        );
-        setSelectedData({
-          id: email.emailId,
-          from: email.name,
-          email: email.email,
-          subject: email.subject,
-          date: formatDate(email.createdAt),
-          body: response.data.email.body,
-          isFavorite: email.isFavorite,
-          read: email.isRead,
-        });
-      } else {
-        setError("Error in fetching single data");
-      }
+      await selectEmail(email);
     } catch (error) {
-      if (axios.isCancel(error)) {
-        console.log("Request canceled:", error.message);
-      } else {
-        console.error("Error fetching selected email:", error);
-        setError("Failed to fetch the selected email");
-      }
+      console.error("Error fetching selected email:", error);
+      setError("Failed to fetch the selected email");
     } finally {
-      setLoadingBody(false);
+      setBodyloading(false);
     }
-  };
-
-  const handleBackToList = () => {
-    setSelectedEmail(null);
-    setSelectedData(null);
   };
 
   const handleToggleFavorite = async (emailId) => {
-    try {
-      const response = await axios.post(`/api/email/${emailId}`, {
-        id: emailId,
-      });
-      if (response.status === 200) {
-        setEmails((prevEmails) =>
-          prevEmails.map((email) =>
-            email.emailId === emailId
-              ? { ...email, isFavorite: !email.isFavorite }
-              : email
-          )
-        );
-      } else {
-        throw new Error("Failed to update favorite status");
-      }
-    } catch (error) {
-      console.error("Error toggling favorite status:", error);
-      setError("Failed to toggle favorite status");
-    }
+    await toggleFavorite(emailId); // Ensure it updates the context state
+    // Update the local state immediately
+    setEmails((prevEmails) =>
+      prevEmails.map((email) =>
+        email.emailId === emailId
+          ? { ...email, isFavorite: !email.isFavorite } // Toggle favorite status
+          : email
+      )
+    );
+    fetchEmails(); // Re-fetch emails after toggling
   };
 
   const filteredEmails = emails.filter((email) => {
@@ -198,7 +156,7 @@ const EmailList = () => {
       <main className="flex flex-col md:flex-row h-screen w-full">
         <aside
           className={`${
-            selectedEmail ? "hidden md:block" : "block w-full"
+            selectedEmail?.isRead ? "hidden md:block" : "block w-full"
           } pr-3 gap-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
         >
           {filteredEmails.length === 0 ? (
@@ -214,7 +172,7 @@ const EmailList = () => {
                     email.isRead ? "bg-gray-100" : "bg-white"
                   } && ${
                     selectedEmail?.emailId === email.emailId
-                      ? "bg-gray-200"
+                      ? "border-2 border-red-500"
                       : ""
                   }`}
                   onClick={() => handleEmailSelect(email)}
@@ -240,7 +198,7 @@ const EmailList = () => {
                     </p>
                     <div className="flex justify-start gap-4 items-center text-sm">
                       <p>{formatDate(email.createdAt)}</p>
-                      {email.isFavorite === true && (
+                      {email.isFavorite && (
                         <span className="text-[#E54065] font-semibold">
                           Favorite
                         </span>
@@ -285,15 +243,7 @@ const EmailList = () => {
         {/* Email Body Section */}
         {selectedEmail && (
           <div className="block md:w-[80%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
-            {loadingBody ? (
-              <Loader />
-            ) : (
-              <EmailBody
-                selectedData={selectedData}
-                selectedEmail={selectedEmail}
-                handleToggleFavorite={handleToggleFavorite}
-              />
-            )}
+            {bodyloading ? <Loader /> : <EmailBody />}
           </div>
         )}
       </main>
