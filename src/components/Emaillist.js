@@ -139,7 +139,7 @@ const EmailList = () => {
             href="/"
             key={filterType}
             onClick={() => handleFilterChange(filterType)}
-            className={`px-4 py-1 mx-1 rounded-full ${
+            className={`px-[10px] md:px-4 py-1 mx-1 rounded-full ${
               filter === filterType ? "bg-gray-200 text-black" : ""
             }`}
           >
@@ -147,23 +147,26 @@ const EmailList = () => {
           </button>
         ))}
       </header>
-      <Suspense fallback={<Loader />}>
-        <main className="flex flex-col md:flex-row h-screen w-full">
-          <aside
-            className={`${
-              selectedEmail?.isRead ? "hidden md:block" : "block w-full"
-            } pr-3 gap-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
-          >
-            {filteredEmails.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p>No emails found.</p>
-              </div>
-            ) : (
+
+      <main className="flex flex-col md:flex-row w-full">
+        <aside
+          className={`${
+            selectedEmail?.isRead
+              ? "hidden md:block md:w-[500px]"
+              : "block w-full"
+          }  pr-3 pb-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
+        >
+          {filteredEmails.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p>No emails found.</p>
+            </div>
+          ) : (
+            <Suspense fallback={<Loader />}>
               <div className="flex flex-col gap-4">
                 {filteredEmails.map((email) => (
                   <div
                     key={email.emailId}
-                    className={`p-4 flex gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
+                    className={`p-4 flex h-auto gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
                       email.isRead ? "bg-gray-100" : "bg-white"
                     } && ${
                       selectedEmail?.emailId === email.emailId
@@ -202,10 +205,11 @@ const EmailList = () => {
                     </div>
                   </div>
                 ))}
+
                 {dataLength > 5 && (
-                  <footer className="flex justify-center items-center rounded-full gap-4 mt-6">
+                  <footer className="flex justify-center items-center rounded-full gap-3 mt-4">
                     <button
-                      className={`px-4 py-2 rounded ${
+                      className={`px-3 py-2 rounded ${
                         currentPage === 1
                           ? "bg-red-300 text-gray-500 cursor-not-allowed"
                           : "bg-red-200"
@@ -219,7 +223,7 @@ const EmailList = () => {
                       Page {currentPage} of {totalPages}
                     </p>
                     <button
-                      className={`px-4 py-2 rounded ${
+                      className={`px-3 py-2 rounded ${
                         currentPage === totalPages
                           ? "bg-red-300 text-gray-500 cursor-not-allowed"
                           : "bg-red-200"
@@ -232,17 +236,17 @@ const EmailList = () => {
                   </footer>
                 )}
               </div>
-            )}
-          </aside>
-
-          {/* Email Body Section */}
-          {selectedEmail && (
-            <div className="block md:w-[80%] overflow-y-auto p-4 bg-white rounded-lg shadow-md">
-              {bodyloading ? <Loader /> : <EmailBody />}
-            </div>
+            </Suspense>
           )}
-        </main>
-      </Suspense>
+        </aside>
+
+        {/* Email Body Section */}
+        {selectedEmail && (
+          <div className="w-[95%] block overflow-y-auto p-4 bg-white rounded-lg shadow-md">
+            {bodyloading ? <Loader /> : <EmailBody />}
+          </div>
+        )}
+      </main>
     </>
   );
 };
