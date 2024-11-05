@@ -132,12 +132,6 @@ const EmailList = () => {
         ))}
       </header>
 
-      {loading && (
-        <div className="flex justify-center my-4">
-          <Loader />
-        </div>
-      )}
-
       <main className="flex h-full flex-col md:flex-row w-full">
         <aside
           className={`${
