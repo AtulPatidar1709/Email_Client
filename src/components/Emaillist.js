@@ -83,7 +83,6 @@ const EmailList = () => {
       await selectEmail(email);
     } catch (error) {
       console.error("Error fetching selected email:", error);
-      setError("Failed to fetch the selected email");
     } finally {
       setBodyloading(false);
     }
@@ -147,54 +146,52 @@ const EmailList = () => {
               : "block w-full"
           }  pr-3 pb-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
         >
-          {filteredEmails.length === 0 ? (
+          {!loading && filteredEmails.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <p>No emails found.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <Suspense fallback={<Loader />}>
-                {filteredEmails.map((email) => (
-                  <div
-                    key={email.emailId}
-                    className={`p-4 flex h-auto gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
-                      email.isRead ? "bg-gray-100" : "bg-white"
-                    } && ${
-                      selectedEmail?.emailId === email.emailId
-                        ? "border-2 border-red-500"
-                        : ""
-                    }`}
-                    onClick={() => handleEmailSelect(email)}
-                  >
-                    <div className="bg-[#E54065] rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
-                      {email.name.charAt(0).toUpperCase()}
-                    </div>
+              {filteredEmails.map((email) => (
+                <div
+                  key={email.emailId}
+                  className={`p-4 flex h-auto gap-4 rounded-lg cursor-pointer shadow-md transition-all duration-200 ${
+                    email.isRead ? "bg-gray-100" : "bg-white"
+                  } && ${
+                    selectedEmail?.emailId === email.emailId
+                      ? "border-2 border-red-500"
+                      : ""
+                  }`}
+                  onClick={() => handleEmailSelect(email)}
+                >
+                  <div className="bg-[#E54065] rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
+                    {email.name.charAt(0).toUpperCase()}
+                  </div>
 
-                    <div className="flex-grow overflow-hidden flex flex-col gap-1">
-                      <p className="font-semibold">
-                        {email.name}{" "}
-                        <span className="text-base text-gray-500">
-                          {email.email}
+                  <div className="flex-grow overflow-hidden flex flex-col gap-1">
+                    <p className="font-semibold">
+                      {email.name}{" "}
+                      <span className="text-base text-gray-500">
+                        {email.email}
+                      </span>
+                    </p>
+                    <p className="font-semibold truncate">
+                      Subject: {email.subject}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {email.body}
+                    </p>
+                    <div className="flex justify-start gap-4 items-center text-sm">
+                      <p>{formatDate(email.createdAt)}</p>
+                      {email.isFavorite && (
+                        <span className="text-[#E54065] font-semibold">
+                          Favorite
                         </span>
-                      </p>
-                      <p className="font-semibold truncate">
-                        Subject: {email.subject}
-                      </p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {email.body}
-                      </p>
-                      <div className="flex justify-start gap-4 items-center text-sm">
-                        <p>{formatDate(email.createdAt)}</p>
-                        {email.isFavorite && (
-                          <span className="text-[#E54065] font-semibold">
-                            Favorite
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </Suspense>
+                </div>
+              ))}
 
               {dataLength > 5 && (
                 <footer className="flex justify-center items-center rounded-full gap-3 mt-4">
