@@ -40,7 +40,7 @@ export async function POST(req) {
 
 export async function GET(req) {
   const url = new URL(req.url);
-  const emailId = url.pathname.split("/").pop(); // Extract emailId from the URL
+  const emailId = url.pathname.split("/").pop();
 
   try {
     const thirdPartyAPIUrl = `https://flipkart-email-mock.now.sh/?id=${emailId}`;

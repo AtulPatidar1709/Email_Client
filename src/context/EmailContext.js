@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useRef, useEffect } from "react";
 import axios from "axios";
 
 const EmailContext = createContext();
@@ -8,12 +8,15 @@ export const EmailProvider = ({ children, userId }) => {
   const [favorites, setFavorites] = useState([]);
   const [readEmails, setReadEmails] = useState([]);
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const cancelTokenSource = useRef(null);
 
   // Fetch favorites and readEmails from the server on mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get(`/api/email/${userId}`);
+        const response = await axios.get(`/api/email/${userId}`, {
+          cache: "no-store",
+        });
         setFavorites(response.data.favorites || []);
         setReadEmails(response.data.readEmails || []);
       } catch (error) {
@@ -27,12 +30,26 @@ export const EmailProvider = ({ children, userId }) => {
   }, [userId]);
 
   const selectEmail = async (email) => {
+    // Use a ref to keep track of the cancel token for ongoing requests
+    if (!cancelTokenSource.current)
+      cancelTokenSource.current = axios.CancelToken.source();
+
+    // Cancel any previous request if a new one is initiated
+    if (cancelTokenSource.current) {
+      cancelTokenSource.current.cancel("Canceled due to new selection.");
+    }
+
+    // Assign a new cancel token for the current request
+    cancelTokenSource.current = axios.CancelToken.source();
+
     try {
-      const response = await axios.get(`/api/email/${email.emailId}`);
+      const response = await axios.get(`/api/email/${email.emailId}`, {
+        cancelToken: cancelTokenSource.current.token,
+      });
       setSelectedEmail({ ...email, body: response.data.email.body });
       markAsRead(email.emailId, email.isFavorite);
     } catch (error) {
-      console.error("Error fetching email details:", error);
+      console.error(error);
     }
   };
 

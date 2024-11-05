@@ -9,6 +9,7 @@ import EmailContext from "../context/EmailContext";
 
 const EmailList = () => {
   const {
+    readEmails,
     toggleFavorite,
     favorites,
     markAsRead,
@@ -16,6 +17,7 @@ const EmailList = () => {
     selectedEmail,
     setSelectedEmail,
   } = useContext(EmailContext);
+
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bodyloading, setBodyloading] = useState(true);
@@ -25,32 +27,22 @@ const EmailList = () => {
   const [filter, setFilter] = useState("all");
   const [dataLength, setDataLength] = useState(0);
   const emailsPerPage = 5;
-  const cache = useRef({}); // Caching emails by page and filter
   const cancelTokenSource = useRef(null); // Ref to hold the cancel token
 
   useEffect(() => {
     const fetchEmails = async () => {
       setLoading(true);
-      const cacheKey = `${currentPage}-${filter}`;
-      if (cache.current[cacheKey]) {
-        const { paginatedEmails, totalItems } = cache.current[cacheKey];
-        setEmails(paginatedEmails);
-        setDataLength(totalItems);
-        setTotalPages(Math.ceil(totalItems / emailsPerPage));
-        setLoading(false);
-        return;
-      }
 
       try {
         cancelTokenSource.current = axios.CancelToken.source(); // Create a new cancel token
         const response = await axios.get(
           `/api/email?page=${currentPage}&limit=${emailsPerPage}&filter=${filter}`,
-          { cancelToken: cancelTokenSource.current.token } // Pass the token
+          { cancelToken: cancelTokenSource.current.token },
+          { cache: "no-store" }
         );
 
         if (response.status === 200) {
           const { paginatedEmails, totalItems } = response.data;
-          cache.current[cacheKey] = response.data;
           setDataLength(totalItems);
           setEmails(paginatedEmails);
           setTotalPages(Math.ceil(totalItems / emailsPerPage));
@@ -58,25 +50,20 @@ const EmailList = () => {
           throw new Error("Failed to fetch emails");
         }
       } catch (error) {
-        if (axios.isCancel(error)) {
-          console.log("Request canceled:", error.message);
-        } else {
-          setError(error.message);
-        }
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchEmails();
-    const interval = setInterval(fetchEmails, 1000); // Poll for new emails every 5 seconds
+
     return () => {
-      clearInterval(interval);
       if (cancelTokenSource.current) {
         cancelTokenSource.current.cancel("Operation canceled by the user.");
       }
     };
-  }, [currentPage, filter, favorites]);
+  }, [currentPage, filter, favorites, readEmails]);
 
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -112,7 +99,6 @@ const EmailList = () => {
           : email
       )
     );
-    fetchEmails(); // Re-fetch emails after toggling
   };
 
   const filteredEmails = emails.filter((email) => {
@@ -136,7 +122,6 @@ const EmailList = () => {
         <h4 className="font-semibold">Filter By:</h4>
         {["all", "read", "unread", "favorites"].map((filterType) => (
           <button
-            href="/"
             key={filterType}
             onClick={() => handleFilterChange(filterType)}
             className={`px-[10px] md:px-4 py-1 mx-1 rounded-full ${
@@ -148,10 +133,16 @@ const EmailList = () => {
         ))}
       </header>
 
-      <main className="flex flex-col md:flex-row w-full">
+      {loading && (
+        <div className="flex justify-center my-4">
+          <Loader />
+        </div>
+      )}
+
+      <main className="flex h-full flex-col md:flex-row w-full">
         <aside
           className={`${
-            selectedEmail?.isRead
+            selectedEmail?.emailId
               ? "hidden md:block md:w-[500px]"
               : "block w-full"
           }  pr-3 pb-4 overflow-hidden transition-all duration-300 border-r border-gray-200`}
@@ -161,8 +152,8 @@ const EmailList = () => {
               <p>No emails found.</p>
             </div>
           ) : (
-            <Suspense fallback={<Loader />}>
-              <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
+              <Suspense fallback={<Loader />}>
                 {filteredEmails.map((email) => (
                   <div
                     key={email.emailId}
@@ -175,12 +166,10 @@ const EmailList = () => {
                     }`}
                     onClick={() => handleEmailSelect(email)}
                   >
-                    {/* Sender Initial Circle */}
                     <div className="bg-[#E54065] rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold text-white">
                       {email.name.charAt(0).toUpperCase()}
                     </div>
 
-                    {/* Email Information */}
                     <div className="flex-grow overflow-hidden flex flex-col gap-1">
                       <p className="font-semibold">
                         {email.name}{" "}
@@ -205,44 +194,43 @@ const EmailList = () => {
                     </div>
                   </div>
                 ))}
+              </Suspense>
 
-                {dataLength > 5 && (
-                  <footer className="flex justify-center items-center rounded-full gap-3 mt-4">
-                    <button
-                      className={`px-3 py-2 rounded ${
-                        currentPage === 1
-                          ? "bg-red-300 text-gray-500 cursor-not-allowed"
-                          : "bg-red-200"
-                      }`}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                    <p>
-                      Page {currentPage} of {totalPages}
-                    </p>
-                    <button
-                      className={`px-3 py-2 rounded ${
-                        currentPage === totalPages
-                          ? "bg-red-300 text-gray-500 cursor-not-allowed"
-                          : "bg-red-200"
-                      }`}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </footer>
-                )}
-              </div>
-            </Suspense>
+              {dataLength > 5 && (
+                <footer className="flex justify-center items-center rounded-full gap-3 mt-4">
+                  <button
+                    className={`px-3 py-2 rounded ${
+                      currentPage === 1
+                        ? "bg-red-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <p>
+                    Page {currentPage} of {totalPages}
+                  </p>
+                  <button
+                    className={`px-3 py-2 rounded ${
+                      currentPage === totalPages
+                        ? "bg-red-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </footer>
+              )}
+            </div>
           )}
         </aside>
 
-        {/* Email Body Section */}
         {selectedEmail && (
-          <div className="w-[95%] block overflow-y-auto p-4 bg-white rounded-lg shadow-md">
+          <div className="w-[95%] block h-5/6 pb-4 overflow-y-auto pt-4 p-4 bg-white rounded-lg shadow-md">
             {bodyloading ? <Loader /> : <EmailBody />}
           </div>
         )}
